@@ -20,6 +20,7 @@ import sys
 import time
 import itertools
 
+
 def main(args=None, *, _wrap_timer=None):
     """ Main program, used when run as a script.
 
@@ -52,7 +53,7 @@ def main(args=None, *, _wrap_timer=None):
 
     timer = default_timer
     stmt = "\n".join(args) or "pass"
-    number = 0 # auto-determine
+    number = 0  # auto-determine
     setup = []
     repeat = default_repeat
     verbose = 0
@@ -69,7 +70,7 @@ def main(args=None, *, _wrap_timer=None):
                 time_unit = a
             else:
                 print("Unrecognized unit. Please select nsec, usec, msec, or sec.",
-                    file=sys.stderr)
+                      file=sys.stderr)
                 return 2
         if o in ("-r", "--repeat"):
             repeat = int(a)
@@ -103,7 +104,7 @@ def main(args=None, *, _wrap_timer=None):
                 msg = "{num} loop{s} -> {secs:.{prec}g} secs"
                 plural = (number != 1)
                 print(msg.format(num=number, s='s' if plural else '',
-                                  secs=time_taken, prec=precision))
+                                 secs=time_taken, prec=precision))
         try:
             number, _ = t.autorange(callback)
         except:
@@ -155,6 +156,7 @@ def main(args=None, *, _wrap_timer=None):
                                UserWarning, '', 0)
     return None
 
+
 if __name__ == "__main__":
-    from .timeit import *
+    from timebandit.timeit import *
     sys.exit(main())

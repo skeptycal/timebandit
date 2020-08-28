@@ -60,7 +60,6 @@ import sys
 import time
 import itertools
 import typing as t
-from typing import Dict, Literal, Union
 
 __all__ = ["Timer", "timeit", "repeat", "default_timer", "default_repeat"]
 
