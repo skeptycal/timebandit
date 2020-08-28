@@ -4,27 +4,55 @@
     # shellcheck source=/dev/null
     # shellcheck disable=2178,2128,2206,2034
 
-#* ###################### Setup User ~/bin directory repo
-#*
+#* ###################### Setup
+
+#? ####################### debug
+    # SET_DEBUG: set to 1 for verbose testing;
+    SET_DEBUG=1
+#? ####################### initialization
+	NO_BREW=0
+
+    BASH_SOURCE="${0}"
+    SCRIPT_NAME="${BASH_SOURCE##*/}"
+    SCRIPT_PATH="${BASH_SOURCE%/*}"
+
+    REPO_PATH="$PWD"
+    REPO_NAME="${PWD##*/}"
 
 #? ######################## configuration
-    export YEAR=$(date "+%Y")
-    t0=$(date "+%s.%n")
-
+	[[ ${SHELL##*/} == 'zsh' ]] && set -o shwordsplit
+    export YEAR=$(date +%Y)
+    t0=$(date +%s.%n)
+    _set_basic_colors() {
+        export MAIN=$(printf "%b" '\001\033[38;5;229m')
+        export WARN=$(printf "%b" '\001\033[38;5;203m')
+        export COOL=$(printf "%b" '\001\033[38;5;38m')
+        export BLUE=$(printf "%b" '\001\033[38;5;38m')
+        export GO=$(printf "%b" '\001\033[38;5;28m')
+        export LIME=$(printf "%b" '\001\033[32;1m')
+        export CHERRY=$(printf "%b" '\001\033[38;5;124m')
+        export CANARY=$(printf "%b" '\001\033[38;5;226m')
+        export ATTN=$(printf "%b" '\001\033[38;5;178m')
+        export PURPLE=$(printf "%b" '\001\033[38;5;93m')
+        export RAIN=$(printf "%b" '\001\033[38;5;93m')
+        export WHITE=$(printf "%b" '\001\033[37m')
+        export RESTORE=$(printf "%b" '\001\033[0m\002')
+        export RESET=$(printf "%b" '\001\033[0m')
+    	}
+    # ssm - standard script modules or alternate
+    . $(which ssm) || _set_basic_colors
     cleanup() {
         # cleanup and exit script
         unset echo
 
         # calculate and display script time
-        t1=$(date "+%s.%n")
+        t1=$(date +%s.%n)
         dt=$((t1-t0))
-        printf '\n%bScript %s took %.3f seconds to load.\n\n' "${GO:-}" "$0" "$dt"
+        dbecho '\n%bScript %s took %.3f seconds to load.\n\n' "${GO:-}" "$0" "$dt"
         unset t0 t1 dt
-    }
-
+    	}
     trap cleanup EXIT
-
-    # more portable alternative
+#? ######################## utilities
     echo () {
         if [ -n "$1" ]; then
             printf '%s' "$1"
@@ -34,81 +62,94 @@
             printf ' %s' "$arg"
         done
         printf '%s\n' ''
-    }
+    	}
+	dbecho() { (( SET_DEBUG==1 )) && echo "${ATTN:-}$@"; }
+    _debug_show_paths() {
+        tmp='BASH_SOURCE SCRIPT_NAME SCRIPT_PATH REPO_PATH REPO_NAME TEMPLATE_PATH'
+        for i in $tmp; do
+            echo -e "${MAIN:-}${(r:15:)i} ... ${CANARY:-}${(P)i}${RESET:-}"
+        done;
+    	}
 
-    exists() { type $1 > /dev/null 2>&1 ; }
-
-    _set_basic_colors() {
-        declare -x MAIN && MAIN=$(echo -en '\001\033[38;5;229m')
-        declare -x WARN && WARN=$(echo -en '\001\033[38;5;203m')
-        declare -x COOL && COOL=$(echo -en '\001\033[38;5;38m')
-        declare -x BLUE && BLUE=$(echo -en '\001\033[38;5;38m')
-        declare -x GO && GO=$(echo -en '\001\033[38;5;28m')
-        declare -x LIME && LIME=$(echo -en '\001\033[32;1m')
-        declare -x CHERRY && CHERRY=$(echo -en '\001\033[38;5;124m')
-        declare -x CANARY && CANARY=$(echo -en '\001\033[38;5;226m')
-        declare -x ATTN && ATTN=$(echo -en '\001\033[38;5;178m')
-        declare -x PURPLE && PURPLE=$(echo -en '\001\033[38;5;93m')
-        declare -x RAIN && RAIN=$(echo -en '\001\033[38;5;93m')
-        declare -x WHITE && WHITE=$(echo -en '\001\033[37m')
-        declare -x RESTORE && RESTORE=$(echo -en '\001\033[0m\002')
-        declare -x RESET && RESET=$(echo -en '\001\033[0m')
-    }
-
-    # ssm - standard script modules or alternate
-    . "$(command -v ssm)" > /dev/null 2>&1 || _set_basic_colors
-
-#? ######################## setup
-    _setup_brew() {
-        exists brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-
-        brew cleanup
-        brew doctor
-        brew update
-
-        brew install git hub gpg python@3.8 poetry pre-commit
-
-    } # > /dev/null 2>&1
+	die() {
+		echo "${ATTN:-}$@"
+		exit 1
+		}
 
 	is_empty() {
 		[ -z "$(ls -A $1)" ]
-	}
-    main() {
-		if [ -z "$1" ]; then
-			testpath=$(realpath $PWD)
-			is_empty $testpath || die "Directory is not empty"
+		}
+
+    exists() { command -v $1 > /dev/null 2>&1 ; }
+	version() { cat pyproject.toml | grep 'version = '; }
+
+#? ######################## setup
+    _setup_brew() {
+		if (( $SET_DEBUG == 1 )); then
+			dbecho 'Install brew if it is not installed...'
 		else
-			testpath="$1"
-			mkdir $1 || die "Error creating directory $1"
-			testpath=$(realpath $testpath)
-			cd $1
-			shift
-        	[ "$1" == '--nobrew' ] && echo 'Skipping HomeBrew install ...' || _setup_brew
+        	exists brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+
+			brew cleanup
+			brew doctor
+			brew update
+
+			brew install git hub python@3.8 poetry pre-commit
 		fi
 
-        repo_path=$testpath
-		repo_name=${repo_path##*/}
+    } # > /dev/null 2>&1
 
-        git init
+	_setup_repo() {
         python3 -m venv .venv
+		source ./.venv/bin/activate
 
-        _setup_prereqs
+		pip install -U pip
 
-        REQS=
-        DEV_REQS=( pip wheel setuptools pylint pytest tox coverage pytest-cov )
-        DEV_OPTS=( flake8 black tox-travis Sphinx sphinx-autobuild sphinx-rtd-theme )
+        REQS='loguru wheel'
+        DEV_REQS='pip wheel setuptools pylint pytest tox coverage pytest-cov'
+        DEV_OPTS='flake8 black tox-travis Sphinx sphinx-autobuild sphinx-rtd-theme'
 
-        _setup_reqs
+		for i in $REQS; do poetry add $i; done;
+		for i in $DEV_REQS; do poetry add -dev $i; done;
+		for i in $DEV_OPTS; do poetry add -dev $i; done;
 
+		poetry update
+		poetry build
+		poetry install
+
+	}
+
+    main() {
+
+		TESTPATH=$(realpath $PWD)
+		while [ -n $# ]; do
+			case $1 in
+				-h|--help)
+					echo "Usage: $0 [-h|--help] [-v|--version] [--nobrew] [new/repo/path] "
+					exit 0
+					;;
+				-v|--version)
+					echo "$0 $(version)"
+					exit 0
+					;;
+				--nobrew)
+					NO_BREW=1
+					;;
+				*)
+					echo ""
+					;;
+			esac
+			shift
+		done
+
+		(( NO_BREW==1 )) && ( echo 'Skipping HomeBrew install ...'; ) || _setup_brew
+        _setup_repo
         _end_timer
     }
 
 main "$@"
 
-# continue setup in python
-python3 -m setup
-
-
+# ------------------------ stuff ------------------------
 #? ${PATH//:/\\n}    - replace all colons with newlines to display as a list
 #? ${PATH// /}       - strip all spaces
 #? ${VAR##*/}        - return only final element in path (program name)
