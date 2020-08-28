@@ -9,35 +9,26 @@
 #? ####################### debug
     # SET_DEBUG: set to 1 for verbose testing;
     SET_DEBUG=1
-#? ####################### initialization
-	NO_BREW=0
-
-    BASH_SOURCE="${0}"
-    SCRIPT_NAME="${BASH_SOURCE##*/}"
-    SCRIPT_PATH="${BASH_SOURCE%/*}"
-
-    REPO_PATH="$PWD"
-    REPO_NAME="${PWD##*/}"
 
 #? ######################## configuration
 	[[ ${SHELL##*/} == 'zsh' ]] && set -o shwordsplit
     export YEAR=$(date +%Y)
     t0=$(date +%s.%n)
     _set_basic_colors() {
-        export MAIN=$(printf "%b" '\001\033[38;5;229m')
-        export WARN=$(printf "%b" '\001\033[38;5;203m')
-        export COOL=$(printf "%b" '\001\033[38;5;38m')
-        export BLUE=$(printf "%b" '\001\033[38;5;38m')
-        export GO=$(printf "%b" '\001\033[38;5;28m')
-        export LIME=$(printf "%b" '\001\033[32;1m')
-        export CHERRY=$(printf "%b" '\001\033[38;5;124m')
-        export CANARY=$(printf "%b" '\001\033[38;5;226m')
-        export ATTN=$(printf "%b" '\001\033[38;5;178m')
-        export PURPLE=$(printf "%b" '\001\033[38;5;93m')
-        export RAIN=$(printf "%b" '\001\033[38;5;93m')
-        export WHITE=$(printf "%b" '\001\033[37m')
-        export RESTORE=$(printf "%b" '\001\033[0m\002')
-        export RESET=$(printf "%b" '\001\033[0m')
+        export MAIN='\001\033[38;5;229m'
+        export WARN='\001\033[38;5;203m'
+        export COOL='\001\033[38;5;38m'
+        export BLUE='\001\033[38;5;38m'
+        export GO='\001\033[38;5;28m'
+        export LIME='\001\033[32;1m'
+        export CHERRY='\001\033[38;5;124m'
+        export CANARY='\001\033[38;5;226m'
+        export ATTN='\001\033[38;5;178m'
+        export PURPLE='\001\033[38;5;93m'
+        export RAIN='\001\033[38;5;93m'
+        export WHITE='\001\033[37m'
+        export RESTORE='\001\033[0m\002'
+        export RESET='\001\033[0m'
     	}
     # ssm - standard script modules or alternate
     . $(which ssm) || _set_basic_colors
@@ -48,26 +39,35 @@
         # calculate and display script time
         t1=$(date +%s.%n)
         dt=$((t1-t0))
-        dbecho '\n%bScript %s took %.3f seconds to load.\n\n' "${GO:-}" "$0" "$dt"
+        printf '\n%bScript %s took %.3f seconds to load.\n\n' "${GO:-}" "$SCRIPT_NAME" "$dt"
         unset t0 t1 dt
     	}
     trap cleanup EXIT
+
+	NO_BREW=0
+
+    BASH_SOURCE="${0}"
+    SCRIPT_NAME="${BASH_SOURCE##*/}"
+    SCRIPT_PATH="${BASH_SOURCE%/*}"
+
+    REPO_PATH="$PWD"
+    REPO_NAME="${PWD##*/}"
 #? ######################## utilities
-    echo () {
-        if [ -n "$1" ]; then
-            printf '%s' "$1"
-            shift
-        fi
-        for arg in "$@"; do
-            printf ' %s' "$arg"
-        done
-        printf '%s\n' ''
-    	}
+    # echo () {
+    #     if [ -n "$1" ]; then
+    #         printf '%s' "$1"
+    #         shift
+    #     fi
+    #     for arg in "$@"; do
+    #         printf ' %s' "$arg"
+    #     done
+    #     printf '%s\n' ''
+    # 	}
 	dbecho() { (( SET_DEBUG==1 )) && echo "${ATTN:-}$@"; }
     _debug_show_paths() {
         tmp='BASH_SOURCE SCRIPT_NAME SCRIPT_PATH REPO_PATH REPO_NAME TEMPLATE_PATH'
         for i in $tmp; do
-            echo -e "${MAIN:-}${(r:15:)i} ... ${CANARY:-}${(P)i}${RESET:-}"
+            echo "${MAIN:-}${(r:15:)i} ... ${CANARY:-}${(P)i}${RESET:-}"
         done;
     	}
 
@@ -86,7 +86,7 @@
 #? ######################## setup
     _setup_brew() {
 		if (( $SET_DEBUG == 1 )); then
-			dbecho 'Install brew if it is not installed...'
+			echo "${ATTN:-}Install brew if it is not installed..."
 		else
         	exists brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 
@@ -107,11 +107,11 @@
 
         REQS='loguru wheel'
         DEV_REQS='pip wheel setuptools pylint pytest tox coverage pytest-cov'
-        DEV_OPTS='flake8 black tox-travis Sphinx sphinx-autobuild sphinx-rtd-theme'
+        DEV_OPTS='flake8 tox-travis Sphinx sphinx-autobuild sphinx-rtd-theme'
 
-		for i in $REQS; do poetry add $i; done;
-		for i in $DEV_REQS; do poetry add -dev $i; done;
-		for i in $DEV_OPTS; do poetry add -dev $i; done;
+		poetry add $REQS
+		poetry add --dev $DEV_REQS
+		poetry add --dev --optional $DEV_OPTS
 
 		poetry update
 		poetry build
@@ -120,16 +120,16 @@
 	}
 
     main() {
-
+		(( SET_DEBUG==1 )) && _debug_show_paths
 		TESTPATH=$(realpath $PWD)
-		while [ -n $# ]; do
+		while (( $# > 0 )); do
 			case $1 in
 				-h|--help)
-					echo "Usage: $0 [-h|--help] [-v|--version] [--nobrew] [new/repo/path] "
+					echo "Usage: $0 [-h|--help] [-v|--version] [--nobrew] "
 					exit 0
 					;;
 				-v|--version)
-					echo "$0 $(version)"
+					echo "$SCRIPT_NAME $(version)"
 					exit 0
 					;;
 				--nobrew)
@@ -144,7 +144,6 @@
 
 		(( NO_BREW==1 )) && ( echo 'Skipping HomeBrew install ...'; ) || _setup_brew
         _setup_repo
-        _end_timer
     }
 
 main "$@"
