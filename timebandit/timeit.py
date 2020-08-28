@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-
 """ ### *** This is not the original python source code ***
     This is a variation on the python3 timeit function from python 3.8.5 and
     is covered by the PSF license. A copy is included at the end of this file
@@ -60,66 +59,77 @@ import gc
 import sys
 import time
 import itertools
+import typing as t
+from typing import Dict, Literal, Union
 
 __all__ = ["Timer", "timeit", "repeat", "default_timer", "default_repeat"]
 
-dummy_src_name = "<timeit-src>"
-default_number = 1000000
-default_repeat = 5
-default_timer = time.perf_counter
+dummy_src_name: t.Literal = t.Literal["<timeit-src>"]
+default_number: t.Literal = t.Literal[1000000]
+default_repeat: t.Literal = t.Literal[5]
+default_timer: time.perf_counter = time.perf_counter
 
-_globals = globals
+_globals: t.Dict[str, t.Any] = globals
 
 # Don't change the indentation of the template; the reindent() calls
 # in Timer.__init__() depend on setup being indented 4 spaces and stmt
 # being indented 8 spaces.
-template = """
+template: t.Literal["""
 def inner(_it, _timer{init}):
     {setup}
     _t0 = _timer()
     for _i in _it:
         {stmt}
     return _timer() - _t0
-"""
+"""]
+
 
 def reindent(src, indent):
     """Helper to reindent a multi-line statement."""
     return src.replace("\n", "\n" + " "*indent)
 
+
 def _pass():
-    """ A callable form of 'pass' """
+    """ Helper to provide a callable form of doing nothing ... 'pass' """
     pass
 
+
 class Timer:
-    """Class for timing execution speed of functions.
+    """ Modified to accept only callable functions, not code snippets
+        passed as strings.
 
-    Parameters:
+        Class for timing execution speed of functions.
 
-    - func: the function to be timed
-    - setup: a setup function that will be run before timing
-        begins (default: '_pass')
-    - timer: (optional) the timer used for timing
-    - globals: (optional) namespace to be used
+        Parameters:
 
-    statements
-    default to 'pass'; the timer function is platform-dependent (see
-    module doc string).  If 'globals' is specified, the code will be
-    executed within that namespace (as opposed to inside timeit's
-    namespace).
+        - func: the function to be timed
+        - setup: a setup function that will be run before timing
+            begins (default: '_pass')
+        - timer: (optional) the timer used for timing
+        - globals: (optional) namespace to be used
 
-    To measure the execution time of the function, use the
-    timeit() method.  The repeat() method is a convenience to call
-    timeit() multiple times and return a list of results.
+        'func' and 'setup' default to 'pass()'; the 'timer' function
+        is platform-dependent (see module doc string).  If 'globals'
+        is specified, the code will be executed within that namespace
+        (as opposed to inside timeit's namespace).
 
-    """
+        To measure the execution time of the function, use the
+        timeit() method.  The repeat() method is a convenience to call
+        timeit() multiple times and return a list of results.
 
-    def __init__(self, func, setup="_pass", timer=default_timer,
-                 globals=None):
-        """Constructor.  See class doc string."""
-        self.timer = timer
-        local_ns = {}
-        global_ns = _globals() if globals is None else globals
-        init = ''
+        """
+
+    def __init__(self, func: t.Callable = "_pass",
+                 setup: t.Callable = "_pass",
+                 timer: time.perf_counter = default_timer,
+                 globals: t.Dict[str, t.Any] = None):
+        """Constructor.  See class doc string. """
+        self.timer: time.perf_counter = timer
+        local_ns: t.Dict = {}
+        global_ns: t.Dict[str, t.Any] = _globals(
+        ) if globals is None else globals
+        init: str = ''
+        stmtprefix: str = ''
         # if isinstance(setup, str):
         #     # Check that the code can be compiled outside a function
         #     compile(setup, dummy_src_name, "exec")
@@ -148,7 +158,7 @@ class Timer:
         exec(code, global_ns, local_ns)
         self.inner = local_ns["inner"]
 
-    def print_exc(self, file=None):
+    def print_exc(self, file: t.Union[t.IO[str], None] = None) -> None:
         """Helper to print a traceback from the timed code.
 
             Typical use:
@@ -165,7 +175,8 @@ class Timer:
             The optional file argument directs where the traceback is
             sent; it defaults to sys.stderr.
             """
-        import linecache, traceback
+        import linecache
+        import traceback
         if self.src is not None:
             linecache.cache[dummy_src_name] = (len(self.src),
                                                None,
@@ -175,7 +186,7 @@ class Timer:
 
         traceback.print_exc(file=file)
 
-    def timeit(self, number=default_number):
+    def timeit(self, number: int = default_number) -> float:
         """ Time 'number' executions of the main statement.
 
             To be precise, this executes the setup statement once, and
@@ -185,11 +196,11 @@ class Timer:
             to one million.  The main statement, the setup statement and
             the timer function to be used are passed to the constructor.
             """
-        it = itertools.repeat(None, number)
-        gcold = gc.isenabled()
+        it: t.Iterator[t._T] = itertools.repeat(None, number)
+        gcold: bool = gc.isenabled()
         gc.disable()
         try:
-            timing = self.inner(it, self.timer)
+            timing: float = self.inner(it, self.timer)
         finally:
             if gcold:
                 gc.enable()
@@ -216,12 +227,12 @@ class Timer:
             vector and apply common sense rather than statistics.
             """
         r = []
-        for i in range(repeat):
+        for _ in range(repeat):
             t = self.timeit(number)
             r.append(t)
         return r
 
-    def autorange(self, callback=None):
+    def autorange(self, callback=None) -> t.Tuple[int, float]:
         """ Return the number of loops and time taken so that total time >= 0.2.
 
             Calls the timeit method with increasing numbers from the sequence
@@ -231,7 +242,10 @@ class Timer:
             If *callback* is given and is not None, it will be called after
             each trial with two arguments: ``callback(number, time_taken)``.
             """
-        i = 1
+        i: int = 1
+        j: int
+        number: int
+        time_taken: float
         while True:
             for j in 1, 2, 5:
                 number = i * j
@@ -242,17 +256,26 @@ class Timer:
                     return (number, time_taken)
             i *= 10
 
-def timeit(func, setup="_pass", timer=default_timer,
-           number=default_number, globals=None):
 
+def timeit(func: t.Callable = "_pass",
+           setup: t.Callable = "_pass",
+           timer: time.perf_counter = default_timer,
+           number: int = default_number,
+           globals: t.Dict[str, t.Any] = None) -> float:
     """Convenience function to create Timer object and call timeit method."""
     return Timer(func, setup, timer, globals).timeit(number)
 
-def repeat(stmt="pass", setup="pass", timer=default_timer,
-           repeat=default_repeat, number=default_number, globals=None):
+
+def repeat(func: t.Callable = "_pass",
+           setup: t.Callable = "_pass",
+           timer: time.perf_counter = default_timer,
+           number: int = default_number,
+           repeat: int = default_repeat,
+           globals: t.Dict[str, t.Any] = None) -> t.List[float]:
     """Convenience function to create Timer object and call repeat method."""
-    return Timer(stmt, setup, timer, globals).repeat(repeat, number)
+    return Timer(func, setup, timer, globals).repeat(repeat, number)
+
 
 if __name__ == "__main__":
-    from ._cli import main
+    from timebandit.cli import main
     sys.exit(main())
