@@ -60,6 +60,18 @@ tests = ["coverage (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six
 
 [[package]]
 category = "dev"
+description = "A tool that automatically formats Python code to conform to the PEP 8 style guide"
+name = "autopep8"
+optional = false
+python-versions = "*"
+version = "1.5.4"
+
+[package.dependencies]
+pycodestyle = ">=2.6.0"
+toml = "*"
+
+[[package]]
+category = "dev"
 description = "Internationalization utilities"
 name = "babel"
 optional = true
@@ -364,7 +376,7 @@ version = "1.9.0"
 category = "dev"
 description = "Python style guide checker"
 name = "pycodestyle"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "2.6.0"
 
@@ -750,7 +762,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pathlib2", "unittest2", "jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "5c70ec3ceb9907d727f23df85b45cb4a045c9972a26a808da858c3aa88be5916"
+content-hash = "868aa38f5e6da86b7ba907bdcffaea27503f344f45917a5f6e9700fedccc17b4"
 lock-version = "1.0"
 python-versions = "^3.5"
 
@@ -778,6 +790,9 @@ atomicwrites = [
 attrs = [
     {file = "attrs-20.1.0-py2.py3-none-any.whl", hash = "sha256:2867b7b9f8326499ab5b0e2d12801fa5c98842d2cbd22b35112ae04bf85b4dff"},
     {file = "attrs-20.1.0.tar.gz", hash = "sha256:0ef97238856430dcf9228e07f316aefc17e8939fc8507e18c6501b761ef1a42a"},
+]
+autopep8 = [
+    {file = "autopep8-1.5.4.tar.gz", hash = "sha256:d21d3901cb0da6ebd1e83fc9b0dfbde8b46afc2ede4fe32fbda0c7c6118ca094"},
 ]
 babel = [
     {file = "Babel-2.8.0-py2.py3-none-any.whl", hash = "sha256:d670ea0b10f8b723672d3a6abeb87b565b244da220d76b4dba1b66269ec152d4"},
