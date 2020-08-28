@@ -70,44 +70,27 @@
 
     } # > /dev/null 2>&1
 
+	is_empty() {
+		[ -z "$(ls -A $1)" ]
+	}
     main() {
+		if [ -z "$1" ]; then
+			testpath=$(realpath $PWD)
+			is_empty $testpath || die "Directory is not empty"
+		else
+			testpath="$1"
+			mkdir $1 || die "Error creating directory $1"
+			testpath=$(realpath $testpath)
+			cd $1
+			shift
+        	[ "$1" == '--nobrew' ] && echo 'Skipping HomeBrew install ...' || _setup_brew
+		fi
 
-        [ ! -d ~/bin ] && mkdir ~/bin
+        repo_path=$testpath
+		repo_name=${repo_path##*/}
 
-        [ "$1" == '--nobrew' ] && echo 'Skipping HomeBrew install ...' || _setup_brew
-
-        # add ~/bin to PATH
-        case ${SHELL##*/} in
-            zsh)
-                export PATH=$PATH:~/bin
-                echo 'export PATH=$PATH:~/bin'  >> ~/.zshrc
-                ;;
-            bash)
-                export PATH=$PATH:~/bin
-                echo 'export PATH=$PATH:~/bin'  >> ~/.bash_profile
-                ;;
-            *csh)
-                set path = ($path ~/bin)
-                echo 'set path = ($path ~/bin)'  >> ~/.cshrc
-                ;;
-            *) # including ksh, sh
-                export PATH=$PATH:~/bin
-                echo 'export PATH=$PATH:~/bin'  >> ~/.profile
-                ;;
-        esac
-
-        #initialize ~/bin/binit
-        src/shell/binit.sh src/shell/binit.sh
-
-        repo_path=$PWD
-        repo_name=${PWD##*/}
-
-        mkdir $repo_name
         git init
-        python3 -m venv venv
-
-        binit
-        BINS=( src/go/brightness src/go/darkmode do_over git_gpg gitit log_urls parse_tags ptags pycache_remove repo_clean speedtest ssm ssm_constants ssm_debug ssm_usage src/tree-1.5.3/tree )
+        python3 -m venv .venv
 
         _setup_prereqs
 

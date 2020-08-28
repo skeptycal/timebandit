@@ -1,10 +1,12 @@
-# <repo_name> Changelog
+# TimeBandit Changelog
 
 ## UNRELEASED
+
 -   Initial Testing
 
-## <repo_name> 0.0.1
+## TimeBandit 0.1.0
 
 -   Initial upload
--   Developed on Python <py_version>
+-   Modified version of standard library `timeit` module
+-   Developed on `Python 3.8.5`
 -   Dev Release. Not Stable
