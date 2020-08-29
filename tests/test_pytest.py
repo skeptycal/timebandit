@@ -1,9 +1,18 @@
 
-import pytest
+import timebandit
 
 
 def _add(a: int, b: int) -> (int):
     return a + b
+
+
+def test_timebandit_basics():
+
+    assert isinstance(timebandit.timeit(func=list), float)
+
+
+def test_timebandit_repeat():
+    assert isinstance(timebandit.repeat(func=set), list)
 
 
 def test_add():
