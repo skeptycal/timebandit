@@ -15,10 +15,16 @@
     is not None, it must be a callable that accepts a timer function
     and returns another timer function (used for unit testing).
     """
+from timeit import default_timer, Timer, timeit, repeat, default_repeat
 import gc
 import sys
 import time
 import itertools
+from loguru import logger
+
+LOGURU_LEVEL = 1
+
+logger.info(f'logger initialized: {logger=}')
 
 
 def main(args=None, *, _wrap_timer=None):
@@ -155,8 +161,3 @@ def main(args=None, *, _wrap_timer=None):
                                % (format_time(worst), format_time(best)),
                                UserWarning, '', 0)
     return None
-
-
-if __name__ == "__main__":
-    from timebandit.timeit import *
-    sys.exit(main())

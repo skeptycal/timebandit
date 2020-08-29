@@ -1,4 +1,5 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3 -m
+
 """ ### *** This is not the original python source code ***
     This is a variation on the python3 timeit function from python 3.8.5 and
     is covered by the PSF license. A copy is included at the end of this file
@@ -55,9 +56,54 @@
 
     """
 
+
 import sys
-from .timeit import *
+from pathlib import Path
+
+from loguru import logger
+from timebandit._cli import main as CLI
+from timebandit.timeit import *
+
+# from .timeit import *
+
+
+__version__: str = None
+
+logger.info(f"filename: {Path(__file__).name}")
+logger.info(f"{Path().cwd().parent=}")
+logger.info("version: ", __version__)
+
+# for line in Path('../pyproject.toml').open(mode='rt').readlines():
+#     if line.startswith("version = "):
+#         __version__ = line.split('"')[1]
+#         break
+
+if not __version__:
+    __version__ = 'unknown'
 
 if __name__ == "__main__":
-    from ._cli import main
-    sys.exit(main())
+
+    sys.exit(CLI())
+
+
+# ------------> example from pluggy project
+# *****************************************************************
+
+# from .hooks import HookspecMarker,  HookimplMarker
+# from .callers import HookCallError
+# from .manager import PluginManager, PluginValidationError
+
+# try:
+#     from ._version import version as __version__
+# except ImportError:
+#     # broken installation, we don't even try
+#     # unknown only works because we do poor mans version compare
+#     __version__ = "unknown"
+
+# __all__ = [
+#     "PluginManager",
+#     "PluginValidationError",
+#     "HookCallError",
+#     "HookspecMarker",
+#     "HookimplMarker",
+# ]

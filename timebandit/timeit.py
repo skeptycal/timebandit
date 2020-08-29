@@ -60,27 +60,30 @@ import sys
 import time
 import itertools
 import typing as t
+from loguru import logger
 
 __all__ = ["Timer", "timeit", "repeat", "default_timer", "default_repeat"]
 
-dummy_src_name: t.Literal = t.Literal["<timeit-src>"]
-default_number: t.Literal = t.Literal[1000000]
-default_repeat: t.Literal = t.Literal[5]
-default_timer: time.perf_counter = time.perf_counter
+dummy_src_name: str = "<timeit-src>"
+default_number: int = 1000000
+default_repeat: int = 5
+default_timer: time.perf_counter = time.perf_counter()
+
+logger.info('timeit initialized')
 
 _globals: t.Dict[str, t.Any] = globals
 
 # Don't change the indentation of the template; the reindent() calls
 # in Timer.__init__() depend on setup being indented 4 spaces and stmt
 # being indented 8 spaces.
-template: t.Literal["""
+template: str = """
 def inner(_it, _timer{init}):
     {setup}
     _t0 = _timer()
     for _i in _it:
         {stmt}
     return _timer() - _t0
-"""]
+"""
 
 
 def reindent(src, indent):
@@ -118,42 +121,44 @@ class Timer:
 
         """
 
-    def __init__(self, func: t.Callable = "_pass",
-                 setup: t.Callable = "_pass",
+    def __init__(self, func: t.Callable = None,
+                 setup: t.Callable = None,
                  timer: time.perf_counter = default_timer,
                  globals: t.Dict[str, t.Any] = None):
         """Constructor.  See class doc string. """
-        self.timer: time.perf_counter = timer
+        src: str = ''
+        init: str = ''
         local_ns: t.Dict = {}
         global_ns: t.Dict[str, t.Any] = _globals(
         ) if globals is None else globals
-        init: str = ''
-        stmtprefix: str = ''
-        # if isinstance(setup, str):
-        #     # Check that the code can be compiled outside a function
-        #     compile(setup, dummy_src_name, "exec")
-        #     stmtprefix = setup + '\n'
-        #     setup = reindent(setup, 4)
-        if callable(setup):
-            local_ns['_setup'] = setup
+
+        logger.info(f"{src=}")
+        logger.info(f"{init=}")
+        logger.info(f"{local_ns=}")
+
+        self.setup = setup if setup else _pass
+        self.func = func if func else _pass
+        self.timer: time.perf_counter = timer
+
+        logger.info(f"{self.func=}")
+        logger.info(f"{self.setup=}")
+        logger.info(f"{self.timer=}")
+
+        if callable(self.setup):
+            local_ns['_setup'] = self.setup
             init += ', _setup=_setup'
-            stmtprefix = ''
             setup = '_setup()'
         else:
             raise ValueError("setup is not callable")
-        # if isinstance(stmt, str):
-        #     # Check that the code can be compiled outside a function
-        #     compile(stmtprefix + stmt, dummy_src_name, "exec")
-        #     stmt = reindent(stmt, 8)
-        if callable(func):
-            local_ns['_stmt'] = func
-            init += ', _stmt=_stmt'
-            stmt = '_stmt()'
+        if callable(self.func):
+            local_ns['_func'] = self.func
+            init += ', _func=_func'
+            stmt = '_func()'
         else:
-            raise ValueError("stmt is not callable")
+            raise ValueError("func is not callable")
         src = template.format(stmt=stmt, setup=setup, init=init)
         self.src = src  # Save for traceback display
-        code = compile(src, dummy_src_name, "exec")
+        code: str = compile(src, dummy_src_name, "exec")
         exec(code, global_ns, local_ns)
         self.inner = local_ns["inner"]
 
@@ -195,7 +200,7 @@ class Timer:
             to one million.  The main statement, the setup statement and
             the timer function to be used are passed to the constructor.
             """
-        it: t.Iterator[t._T] = itertools.repeat(None, number)
+        it: t.Iterator[int] = itertools.repeat(None, number)
         gcold: bool = gc.isenabled()
         gc.disable()
         try:
@@ -256,8 +261,8 @@ class Timer:
             i *= 10
 
 
-def timeit(func: t.Callable = "_pass",
-           setup: t.Callable = "_pass",
+def timeit(func: t.Callable = _pass,
+           setup: t.Callable = _pass,
            timer: time.perf_counter = default_timer,
            number: int = default_number,
            globals: t.Dict[str, t.Any] = None) -> float:
@@ -265,8 +270,8 @@ def timeit(func: t.Callable = "_pass",
     return Timer(func, setup, timer, globals).timeit(number)
 
 
-def repeat(func: t.Callable = "_pass",
-           setup: t.Callable = "_pass",
+def repeat(func: t.Callable = _pass,
+           setup: t.Callable = _pass,
            timer: time.perf_counter = default_timer,
            number: int = default_number,
            repeat: int = default_repeat,
@@ -276,5 +281,5 @@ def repeat(func: t.Callable = "_pass",
 
 
 if __name__ == "__main__":
-    from timebandit.cli import main
+    from timebandit._cli import main
     sys.exit(main())
